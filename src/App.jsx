@@ -506,9 +506,8 @@ export default function App() {
   )
 }
 
-// 將數值 * factor；若為字串，會把其中所有數字放大（保留原小數位數長度）
+// 將數值 * factor；顯示到小數 1 位，正數加「+」
 function scaleNumbersInText(val, factor) {
-  // Scale numbers and always show 1 decimal place with a leading '+' for positives.
   const formatSigned1 = (x) => {
     const n = Number(x)
     if (!Number.isFinite(n)) return String(x)
@@ -520,15 +519,17 @@ function scaleNumbersInText(val, factor) {
     return formatSigned1(val * factor)
   }
   const s = String(val)
-  // Replace every plain number within the text; units (%, ~, etc.) remain untouched.
-  return s.replace(/-?\d+(?:\.\d+)?/g, (m) => {
+  // 捕捉可選的正/負號，避免「++30.0」這類重複號
+  return s.replace(/[+\-]?\d+(?:\.\d+)?/g, (m) => {
     const num = parseFloat(m)
     if (Number.isNaN(num)) return m
     return formatSigned1(num * factor)
   })
+}
 
-  function formatNumbersWithSign1(val) {
-  // Format numbers with 1 decimal and leading '+' if positive (no scaling).
+// 不放大；顯示到小數 1 位，正數加「+」
+// （未勾選「顯示滿等數值」時用這個）
+function formatNumbersWithSign1(val) {
   const formatSigned1 = (x) => {
     const n = Number(x)
     if (!Number.isFinite(n)) return String(x)
@@ -546,5 +547,3 @@ function scaleNumbersInText(val, factor) {
     return formatSigned1(num)
   })
 }
-
-
