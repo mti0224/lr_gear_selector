@@ -2,11 +2,32 @@
  * - 結果列表 1~3 欄自適應（grid-cols-1 sm:grid-cols-2 xl:grid-cols-3）
  * - 結果卡片改直向排版；基本效果一行一個
  * - Skill+ 篩選移除（仍顯示在卡片與詳情；沒有就顯示「無」）
- * - 觸發條件合一欄：第一排屬性（火/水/木/光/暗）、第二排類型（智慧型/敏捷型/力量型），固定 OR
+ * - 觸發條件合一欄：第一排屬性（火/水/木/光/暗）、第二排類型（智慧型/敏捷型/力量型），共用 AND/OR
  * - 自動載入 public/ 裡的 JSON 與圖片（gear_icon/<裝備ID>_icon.png）
  */
 
 import React, { useEffect, useMemo, useState } from 'react'
+
+
+function scaleNumbersInText(val, factor) {
+  // Always show 1 decimal place after scaling for both numbers and numbers inside strings.
+  const toFixed1 = (x) => {
+    const n = Number(x)
+    if (!Number.isFinite(n)) return String(x)
+    return n.toFixed(1)
+  }
+  if (val == null) return ''
+  if (typeof val === 'number') {
+    return toFixed1(val * factor)
+  }
+  const s = String(val)
+  // Replace every plain number (e.g., -12, 3.5) within the text; keep surrounding symbols like % or ~
+  return s.replace(/-?\d+(?:\.\d+)?/g, (m) => {
+    const num = parseFloat(m)
+    if (Number.isNaN(num)) return m
+    return toFixed1(num * factor)
+  })
+}
 
 // ---------- helpers ----------
 const BASE = import.meta.env.BASE_URL || '/'
@@ -103,13 +124,15 @@ export default function App() {
 
   // 4 組條件（星數／類型／基礎效果／觸發條件）
   const [starSelected, setStarSelected] = useState(new Set())
+  const [starMode, setStarMode] = useState('OR')
   const [typeSelected, setTypeSelected] = useState(new Set())
+  const [typeMode, setTypeMode] = useState('OR')
   const [basicSelected, setBasicSelected] = useState(new Set())
   const [basicMode, setBasicMode] = useState('OR')
   const [trigAttrSelected, setTrigAttrSelected] = useState(new Set())
   const [trigTypeSelected, setTrigTypeSelected] = useState(new Set())
-  
-  const [showMax, setShowMax] = useState(false)
+  const [trigMode, setTrigMode] = useState('OR')
+
   const [results, setResults] = useState([])
   const [detail, setDetail] = useState(null)
 
@@ -176,22 +199,22 @@ export default function App() {
 
     const out = (equipJson || []).filter((eq) => {
       const star = Number(eq['裝備星級'] || 0)
-      const ok1 = matchCategoryValue(star, S_star, 'OR')
+      const ok1 = matchCategoryValue(star, S_star, starMode)
 
       const typeVal = String(eq['裝備種類'] || '')
-      const ok2 = matchCategoryValue(typeVal, S_type, 'OR')
+      const ok2 = matchCategoryValue(typeVal, S_type, typeMode)
 
       const b = eq['基本效果']
       const eqBasicKeys = new Set(b && typeof b === 'object' ? Object.keys(b) : [])
       const ok3 = matchEffectKeys(eqBasicKeys, S_basic, basicMode)
 
-      // 觸發條件（合併：屬性 + 類型，固定 OR）
+      // 觸發條件（合併：屬性 + 類型，共用 AND/OR）
       const adv = eq['高級效果']
       const trigStr = adv && typeof adv === 'object' ? adv['觸發條件'] : ''
       const { attrs, types } = pickTriggerTags(trigStr || '')
       const eqTags = new Set([...attrs, ...types])
       const selectedTags = new Set([...S_attr, ...S_tcls])
-      const ok4 = matchEffectKeys(eqTags, selectedTags, 'OR')
+      const ok4 = matchEffectKeys(eqTags, selectedTags, trigMode)
 
       return ok1 && ok2 && ok3 && ok4
     })
@@ -242,7 +265,7 @@ export default function App() {
   ))
 
   // 結果卡片（直向版；基本效果一行一個）
-  function ResultCard({ eq, showMax }) {
+  function ResultCard({ eq }) {
     const thumb = getThumbUrl(eq)
     const name = String(eq['裝備名稱'] || '（未命名）')
     const starStr = `${eq['裝備星級'] || 0}★`
@@ -284,7 +307,7 @@ export default function App() {
           {Object.keys(basic).length ? (
             <ul className="mt-1 space-y-1">
               {Object.entries(basic).map(([k, v]) => (
-                <li key={k}>{k}: {showMax ? scaleNumbersInText(v, 6) : String(v)}</li>
+                <li key={k}>{k}: {String(v)}</li>
               ))}
             </ul>
           ) : (
@@ -308,7 +331,7 @@ export default function App() {
   }
 
   // 詳情 Dialog（基本效果一行一個）
-  function DetailDialog({ eq, onClose, showMax }) {
+  function DetailDialog({ eq, onClose }) {
     if (!eq) return null
     const url = getThumbUrl(eq)
 
@@ -362,7 +385,7 @@ export default function App() {
                 <ul className="space-y-1">
                   {Object.entries(b).map(([k, v]) => (
                     <li key={k} className="text-sm">
-                      <span className="text-zinc-400">{k}：</span>{showMax ? scaleNumbersInText(v, 6) : String(v)}
+                      <span className="text-zinc-400">{k}：</span>{String(v)}
                     </li>
                   ))}
                 </ul>
@@ -432,6 +455,7 @@ export default function App() {
           <div className="rounded-2xl border border-zinc-800 p-3 bg-zinc-900/40">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">星數</div>
+              <AndOrSwitch value={starMode} onChange={setStarMode} />
             </div>
             <div className="mt-1 grid grid-cols-4 gap-x-2">
               {Array.from({ length: 8 }, (_, i) => i + 1).map((s) => (
@@ -451,6 +475,7 @@ export default function App() {
           <div className="rounded-2xl border border-zinc-800 p-3 bg-zinc-900/40">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">類型</div>
+              <AndOrSwitch value={typeMode} onChange={setTypeMode} />
             </div>
             <div className="mt-1 grid grid-cols-3 gap-x-2">{typeBoxes}</div>
           </div>
@@ -466,10 +491,11 @@ export default function App() {
             </div>
           </div>
 
-          {/* 觸發條件：合一欄（第一排屬性、第二排類型；固定 OR） */}
+          {/* 觸發條件：合一欄（第一排屬性、第二排類型；共用 AND/OR） */}
           <div className="rounded-2xl border border-zinc-800 p-3 bg-zinc-900/40">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">觸發條件</div>
+              <AndOrSwitch value={trigMode} onChange={setTrigMode} />
             </div>
             <div className="mt-1 grid grid-cols-5 gap-x-2">{attrBoxes}</div>
             <div className="mt-1 grid grid-cols-3 gap-x-2">{typeClassBoxes}</div>
@@ -480,15 +506,7 @@ export default function App() {
             <button className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500" onClick={doSearch} disabled={!equipJson}>搜尋</button>
             <button className="flex-1 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700" onClick={clearAll}>全部清空</button>
           </div>
-        
-          {/* 額外設置 */}
-          <div className="rounded-2xl border border-zinc-800 p-3 bg-zinc-900/40">
-            <div className="text-sm font-semibold">額外設置</div>
-            <div className="mt-1">
-              <Checkbox label="顯示滿等數值" checked={showMax} onChange={(v) => setShowMax(v)} />
-            </div>
-          </div>
-</aside>
+        </aside>
 
         {/* 右側：結果列表（1~3 欄） */}
         <section>
@@ -496,31 +514,12 @@ export default function App() {
             {!equipJson ? '正在載入資料…' : (results.length ? `符合條件的裝備：${results.length} 件` : '請設定條件後按「搜尋」。')}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {results.map((eq, i) => (<ResultCard key={i} eq={eq} showMax={showMax} />))}
+            {results.map((eq, i) => (<ResultCard key={i} eq={eq} />))}
           </div>
         </section>
       </main>
 
-      {detail && <DetailDialog eq={detail} showMax={showMax} onClose={() => setDetail(null)} />}
+      {detail && <DetailDialog eq={detail} onClose={() => setDetail(null)} />}
     </div>
   )
-}
-
-// 將數值 * factor；若為字串，會把其中所有數字放大（保留原小數位數長度）
-function scaleNumbersInText(val, factor) {
-  if (val == null) return ''
-  if (typeof val === 'number') {
-    const x = val * factor
-    return Number.isInteger(x) ? String(x) : String(+x.toFixed(4)).replace(/\.0+$/, '')
-  }
-  const s = String(val)
-  return s.replace(/-?\d+(?:\.\d+)?/g, (m) => {
-    const num = parseFloat(m)
-    if (Number.isNaN(num)) return m
-    const decimals = (m.includes('.') ? (m.split('.')[1] || '').length : 0)
-    const x = num * factor
-    let out = x.toFixed(decimals)
-    out = out.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1')
-    return out
-  })
 }
