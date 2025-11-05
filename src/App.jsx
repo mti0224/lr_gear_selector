@@ -103,14 +103,11 @@ export default function App() {
 
   // 4 組條件（星數／類型／基礎效果／觸發條件）
   const [starSelected, setStarSelected] = useState(new Set())
-  const [starMode, setStarMode] = useState('OR')
   const [typeSelected, setTypeSelected] = useState(new Set())
-  const [typeMode, setTypeMode] = useState('OR')
   const [basicSelected, setBasicSelected] = useState(new Set())
   const [basicMode, setBasicMode] = useState('OR')
   const [trigAttrSelected, setTrigAttrSelected] = useState(new Set())
   const [trigTypeSelected, setTrigTypeSelected] = useState(new Set())
-  const [trigMode, setTrigMode] = useState('OR')
 
   const [results, setResults] = useState([])
   const [detail, setDetail] = useState(null)
@@ -178,22 +175,22 @@ export default function App() {
 
     const out = (equipJson || []).filter((eq) => {
       const star = Number(eq['裝備星級'] || 0)
-      const ok1 = matchCategoryValue(star, S_star, starMode)
+      const ok1 = matchCategoryValue(star, S_star, 'OR')
 
       const typeVal = String(eq['裝備種類'] || '')
-      const ok2 = matchCategoryValue(typeVal, S_type, typeMode)
+      const ok2 = matchCategoryValue(typeVal, S_type, 'OR')
 
       const b = eq['基本效果']
       const eqBasicKeys = new Set(b && typeof b === 'object' ? Object.keys(b) : [])
       const ok3 = matchEffectKeys(eqBasicKeys, S_basic, basicMode)
 
-      // 觸發條件（合併：屬性 + 類型，共用 AND/OR）
+     
       const adv = eq['高級效果']
       const trigStr = adv && typeof adv === 'object' ? adv['觸發條件'] : ''
       const { attrs, types } = pickTriggerTags(trigStr || '')
       const eqTags = new Set([...attrs, ...types])
       const selectedTags = new Set([...S_attr, ...S_tcls])
-      const ok4 = matchEffectKeys(eqTags, selectedTags, trigMode)
+      const ok4 = matchEffectKeys(eqTags, selectedTags, 'OR')
 
       return ok1 && ok2 && ok3 && ok4
     })
@@ -434,7 +431,6 @@ export default function App() {
           <div className="rounded-2xl border border-zinc-800 p-3 bg-zinc-900/40">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">星數</div>
-              <AndOrSwitch value={starMode} onChange={setStarMode} />
             </div>
             <div className="mt-1 grid grid-cols-4 gap-x-2">
               {Array.from({ length: 8 }, (_, i) => i + 1).map((s) => (
@@ -454,7 +450,6 @@ export default function App() {
           <div className="rounded-2xl border border-zinc-800 p-3 bg-zinc-900/40">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">類型</div>
-              <AndOrSwitch value={typeMode} onChange={setTypeMode} />
             </div>
             <div className="mt-1 grid grid-cols-3 gap-x-2">{typeBoxes}</div>
           </div>
@@ -474,7 +469,6 @@ export default function App() {
           <div className="rounded-2xl border border-zinc-800 p-3 bg-zinc-900/40">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">觸發條件</div>
-              <AndOrSwitch value={trigMode} onChange={setTrigMode} />
             </div>
             <div className="mt-1 grid grid-cols-5 gap-x-2">{attrBoxes}</div>
             <div className="mt-1 grid grid-cols-3 gap-x-2">{typeClassBoxes}</div>
