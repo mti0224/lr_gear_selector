@@ -508,21 +508,23 @@ export default function App() {
 
 // 將數值 * factor；若為字串，會把其中所有數字放大（保留原小數位數長度）
 function scaleNumbersInText(val, factor) {
-  // Always show 1 decimal place after scaling for both numbers and numbers inside strings.
-  const toFixed1 = (x) => {
+  // Scale numbers and always show 1 decimal place with a leading '+' for positives.
+  const formatSigned1 = (x) => {
     const n = Number(x)
     if (!Number.isFinite(n)) return String(x)
-    return n.toFixed(1)
+    const s = n.toFixed(1)
+    return n > 0 ? ('+' + s) : s
   }
   if (val == null) return ''
   if (typeof val === 'number') {
-    return toFixed1(val * factor)
+    return formatSigned1(val * factor)
   }
   const s = String(val)
-  // 會把字串中的每個數字都乘上 factor，並固定到 1 位小數（保留 %, ~, +, 等符號）
+  // Replace every plain number within the text; units (%, ~, etc.) remain untouched.
   return s.replace(/-?\d+(?:\.\d+)?/g, (m) => {
     const num = parseFloat(m)
     if (Number.isNaN(num)) return m
-    return toFixed1(num * factor)
+    return formatSigned1(num * factor)
   })
 }
+
