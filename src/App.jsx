@@ -362,7 +362,7 @@ export default function App() {
                 <ul className="space-y-1">
                   {Object.entries(b).map(([k, v]) => (
                     <li key={k} className="text-sm">
-                      <span className=\"text-zinc-400\">{k}：</span>{showMax ? scaleNumbersInText(v, 6) : String(v)}
+                      <span className="text-zinc-400">{k}：</span>{showMax ? scaleNumbersInText(v, 6) : String(v)}
                     </li>
                   ))}
                 </ul>
