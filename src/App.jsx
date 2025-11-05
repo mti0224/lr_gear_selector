@@ -284,7 +284,7 @@ export default function App() {
           {Object.keys(basic).length ? (
             <ul className="mt-1 space-y-1">
               {Object.entries(basic).map(([k, v]) => (
-                <li key={k}>{k}: {showMax ? scaleNumbersInText(v, 6) : String(v)}</li>
+                <li key={k}>{k}: {showMax ? scaleNumbersInText(v, 6) : formatNumbersWithSign1(v)}</li>
               ))}
             </ul>
           ) : (
@@ -362,7 +362,7 @@ export default function App() {
                 <ul className="space-y-1">
                   {Object.entries(b).map(([k, v]) => (
                     <li key={k} className="text-sm">
-                      <span className="text-zinc-400">{k}：</span>{showMax ? scaleNumbersInText(v, 6) : String(v)}
+                      <span className="text-zinc-400">{k}：</span>{showMax ? scaleNumbersInText(v, 6) : formatNumbersWithSign1(v)}
                     </li>
                   ))}
                 </ul>
@@ -526,5 +526,25 @@ function scaleNumbersInText(val, factor) {
     if (Number.isNaN(num)) return m
     return formatSigned1(num * factor)
   })
+
+  function formatNumbersWithSign1(val) {
+  // Format numbers with 1 decimal and leading '+' if positive (no scaling).
+  const formatSigned1 = (x) => {
+    const n = Number(x)
+    if (!Number.isFinite(n)) return String(x)
+    const s = n.toFixed(1)
+    return n > 0 ? ('+' + s) : s
+  }
+  if (val == null) return ''
+  if (typeof val === 'number') {
+    return formatSigned1(val)
+  }
+  const s = String(val)
+  return s.replace(/[+\-]?\d+(?:\.\d+)?/g, (m) => {
+    const num = parseFloat(m)
+    if (Number.isNaN(num)) return m
+    return formatSigned1(num)
+  })
 }
+
 
